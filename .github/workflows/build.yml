@@ -6,13 +6,17 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-22.04
     timeout-minutes: 90
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java
@@ -26,16 +30,25 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            git zip unzip autoconf libtool pkg-config \
+            git zip unzip \
+            autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             libtinfo6 cmake libffi-dev libssl-dev \
             build-essential ccache
+
+      - name: Install Python dependencies
+        run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install "Cython==0.29.36" buildozer
+          python -m pip install "Cython==0.29.36" buildozer
+
+      - name: Prepare Android SDK licenses
+        run: |
+          mkdir -p "$HOME/.buildozer"
+          yes | buildozer android debug || true
 
       - name: Build APK
         run: buildozer -v android debug
@@ -46,3 +59,4 @@ jobs:
           name: moshtarayati-apk
           path: bin/*.apk
           if-no-files-found: error
+          retention-days: 7
